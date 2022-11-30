@@ -1,139 +1,76 @@
-const input = document.querySelector(".input");
-const result = document.querySelector(".result");
+const screen = document.querySelector(".screen");
 const buttons = document.querySelector(".buttons");
-let exp = "";
-let calculated = false;
-let wasNumber = false;
+const operators = document.querySelectorAll(".buttons__operators button");
+
+let current = "";
+let previous = "";
+let operation = null;
+let clearOnNextNumber = false;
+
+const EQU = "=";
+const ADD = "+";
+const SUB = "-";
+const MUL = "*";
+const DIV = "/";
+const DOT = ".";
+
 buttons.addEventListener("click", event => {
-	// return if non-button is clicked
-	if (!(value = event.target.dataset.value)) return;
 	
-	if (value === "=") {
-		// dont calculate if last is operator
-		if (!wasNumber) return;
+	// check value of clicked thing
+	let value = event.target.dataset.value;
+	
+	// return if value doesn't exists (ie not a button)
+	if (!value) return;
+	
+	if (Number.isNaN(+value) && value !== DOT) {
+		// if button is not a number or dot
 		
-		calculated = true;
-		result.innerText = "= " + calc(exp);
-	} else {
-		if (calculated) {
-			exp = "";
-			calculated = false;
-		}
+		// convert dot to zero since +"." is NaN
+		if (current === DOT) current = "0";
+		if (previous === DOT) current = "0";
 		
-		// if non-number is clicked change the operator
-		let isNumber = !Number.isNaN(+value);
-		if (!isNumber && !wasNumber) exp = exp.slice(0, -1);
-		wasNumber = isNumber;
-		
-		exp += value;
-		input.innerText = pretty(exp);
-		result.innerText = null;
-	}
-});
-
-// let exp = "1.24 + -3.26 * -0.256 _ 2.4";
-// console.log(pretty(exp), "＝", calc(exp));
-
-// calculate string
-// note: use _ for subtraction
-function calc(str) {
-	
-	// remove all whitespace
-	str = str.replaceAll(" ", "");
-	
-	let operators = [];
-	let indexes = [];
-	
-	// find operators and their indexes
-	for (let i = 0; i < str.length; i++) {
-		if (str[i] == "+") {
-			operators.push("+");
-			indexes.push(i);
-		} else if (str[i] == "*") {
-			operators.push("*");
-			indexes.push(i);
-		} else if (str[i] == "/") {
-			operators.push("/");
-			indexes.push(i);
-		} else if (str[i] == "_") {
-			operators.push("_");
-			indexes.push(i);
-		}
-	}
-	
-	// store numbers into array using operator indexes
-	let numbers = [];
-	let last = 0;
-	for (let i = 0; i < operators.length; i++) {
-		numbers.push(Number(str.substring(last, indexes[i])));
-		last = indexes[i] + 1;
-	}
-	numbers.push(Number(str.substring(last)));
-	
-	// while there are 2 or more numbers, calculate next operator
-	while (numbers.length > 1) {
-		let result = oper(operators, numbers);
-		// if oper fails, break loop
-		if (!result) break;
-	}
-	
-	// round number to 10 decimal place
-	// parse float to remove trailing 0s
-	let number = parseFloat(numbers[0].toFixed(10));
-	
-	// return final number
-	return number;
-}
-
-// operate one operator
-function oper(operators, numbers) {
-	
-	// find first * or /
-	let n = -1;
-	for (let i = 0; i < operators.length; i++) {
-		if (operators[i] == "*" || operators[i] == "/") {
-			n = i;
-			break;
-		}
-	}
-	// if there are no * or /, find first + or -
-	if (!~n) {
-		for (let i = 0; i < operators.length; i++) {
-			if (operators[i] == "+" || operators[i] == "_") {
-				n = i;
+		// perform previous operation
+		switch (operation) {
+			case ADD:
+				current = String(+previous + +current);
 				break;
-			}
+			case SUB:
+				current = String(+previous - +current);
+				break;
+			case MUL:
+				current = String(+previous * +current);
+				break;
+			case DIV:
+				current = String(+previous / +current);
+				break;
 		}
+		
+		// store current operation for later
+		operation = value;
+		
+		// next number clears current number
+		clearOnNextNumber = true;
+		
+		// change colour of pressed operator
+		for (let i = 0; i < operators.length; i++) {
+			console.log(operators[i]);
+			if (operators[i].dataset.value === value) operators[i].classList.add("active");
+			else operators[i].classList.remove("active");
+		}
+		
+	} else {
+		// if button is a number or a dot
+		
+		// if operation was pressed clear current number
+		if (clearOnNextNumber) {
+			clearOnNextNumber = false;
+			previous = current;
+			current = "";
+		}
+		
+		// add number/dot to current
+		current += value;
 	}
-	// if there are no operators return false
-	if (!~n) return false;
 	
-	// operate
-	if (operators[n] == "*") {
-		numbers[n] = numbers[n] * numbers[n + 1];
-	} else if (operators[n] == "+") {
-		numbers[n] = numbers[n] + numbers[n + 1];
-	} else if (operators[n] == "/") {
-		numbers[n] = numbers[n] / numbers[n + 1];
-	} else if (operators[n] == "_") {
-		numbers[n] = numbers[n] - numbers[n + 1];
-	}
-	
-	// remove used operator and number
-	operators.splice(n, 1);
-	numbers.splice(n + 1, 1);
-	
-	// oper success
-	return true;
-}
-
-
-// returns string in pretty format
-function pretty(str) {
-	
-	// remove all whitespace
-	str = str.replaceAll(" ", "");
-	
-	// replace operators and add spacing
-	return str.replaceAll("_", " － ").replaceAll("*", " × ").replaceAll("+", " ＋ ").replaceAll("/", " ÷ ");
-}
+	screen.textContent = current;
+});
